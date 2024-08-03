@@ -1,13 +1,27 @@
 import streamlit as st
+import os
+import pandas as pd
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import Font
 import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 import re
-#import pyheif
-import io
-import pandas as pd
 
 # Path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\Tesseract.exe"  # Update this to your Tesseract-OCR installation path
+#pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+st.title("Extract Net, Tax, and Gross Amounts from Image")
+
+uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
+
+# Ensure the directories exist
+output_folder = os.path.join('.', 'output')
+wip_folder = os.path.join('.', 'wip')
+os.makedirs(output_folder, exist_ok=True)
+os.makedirs(wip_folder, exist_ok=True)
+
+tax_amounts = []
 
 def preprocess_image(image):
     """ Preprocess the image for better OCR results """
@@ -27,83 +41,90 @@ def parse_amounts(text):
     next_line_index = lines.index(net_line) + 1 if net_line else None
     next_line = lines[next_line_index] if next_line_index and next_line_index < len(lines) else None
     
-    net_line_words = net_line.split() if net_line else []
-    next_line_words = next_line.split() if next_line else []
-    
     # Extract numbers from the next line
-    numbers = re.findall(r'\d+[\.,]?\d*', next_line)
-    
+    numbers = re.findall(r'\d+[\.,]?\d*', next_line if next_line else "")
     amounts = {
         'Net': numbers[1] if len(numbers) > 1 else None,
         'Tax': numbers[2] if len(numbers) > 2 else None,
         'Gross': numbers[3] if len(numbers) > 3 else None,
-        'Net_Line_Words': net_line_words,
-        'Next_Line_Words': next_line_words
     }
 
     return amounts
 
-def read_heic_image(file):
-    """ Read HEIC image and convert to PIL Image """
-    # heif_file = pyheif.read_heif(file)
-    # image = Image.frombytes(
-        # heif_file.mode,
-        # heif_file.size,
-        # heif_file.data,
-        # "raw",
-        # heif_file.mode,
-        # heif_file.stride,
-    # )
-    return image
-
-def save_corrections(original, corrected):
-    """ Save corrections to a CSV file """
-    df = pd.DataFrame([original, corrected], index=["Original", "Corrected"])
-    df.to_csv('corrections.csv', mode='a', header=False)
-
-def main():
-    st.title("Extract Net, Tax, and Gross Amounts from Image")
+def add_summary_row(df):
+    summary_row = {}
+    for column in df.columns:
+        if df[column].dtype in [float, int]:  # Only sum numeric columns
+            summary_row[column] = df[column].sum()
+        else:  # Set 'taxi_numbers' to 'Summe' for the summary row
+            summary_row[column] = 'Summe'
     
-    uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png", "heic"])
+    # Convert the summary_row dictionary to a DataFrame
+    summary_df = pd.DataFrame([summary_row])
     
-    if uploaded_file is not None:
-        file_type = uploaded_file.type
-        if file_type == "image/heic":
-            image = read_heic_image(uploaded_file)
-        else:
-            image = Image.open(uploaded_file)
-        
-        st.image(image, caption='Uploaded Image', use_column_width=True)
-        
-        preprocessed_image = preprocess_image(image)
-        extracted_text = extract_text_from_image(preprocessed_image)
-        amounts = parse_amounts(extracted_text)
-        
-        st.subheader("Extracted Text")
-        st.text(extracted_text)
-        
-        st.subheader("Extracted Amounts")
-        st.json(amounts)
-        
-        original_amounts = {}
-        corrected_amounts = {}
-        
-        for key, value in amounts.items():
-            if key not in ['Net_Line_Words', 'Next_Line_Words']:
-                original_amounts[key] = value
-                corrected_amounts[key] = st.text_input(f"Correct {key}", value=value if value else "")
-        
-        if st.button("Save Corrections"):
-            save_corrections(original_amounts, corrected_amounts)
-            st.success("Corrections saved successfully.")
-        
-        st.subheader("Parsing Debug Info")
-        st.json({
-            "Extracted Text": extracted_text,
-            "Parsed Amounts": amounts,
-            "Net Line Words": amounts['Net_Line_Words'],
-            "Next Line Words": amounts['Next_Line_Words'],
-        })
+    # Use pd.concat to append the summary row to the original DataFrame
+    return pd.concat([df, summary_df], ignore_index=True)
 
-if __name__ == "__main__":
-    main()
+def generate_excel_file(tax_amounts):
+    output_excel_path = os.path.join(output_folder, "extracted_data.xlsx")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Data"
+    
+    bold_font = Font(bold=True)  # Create a bold font object
+
+    df = pd.DataFrame(tax_amounts)
+    #df = add_summary_row(df)
+
+    # Write DataFrame to Excel with bold headers
+    for r, df_row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
+        for c, value in enumerate(df_row, start=1):
+            cell = ws.cell(row=r, column=c, value=value)
+            # Apply bold formatting to header row
+            if r == 1:
+                cell.font = bold_font
+
+
+    # Save the workbook
+    wb.save(output_excel_path)
+    
+    if os.path.exists(output_excel_path):
+        st.success(f"Data successfully extracted and written to {output_excel_path}")
+    
+        # Read the file into a BytesIO object
+        with open(output_excel_path, 'rb') as f:
+            data = f.read()
+        
+        # Create a download button
+        st.download_button(
+            label="Download Excel file",
+            data=data,
+            file_name="extracted_data.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.error(f"Failed to create the file: {output_excel_path}")
+
+if uploaded_file:
+    uploaded_file_name = uploaded_file.name
+    file_with_path = os.path.join(wip_folder, uploaded_file_name)
+
+    image = Image.open(uploaded_file)
+        
+    st.image(image, caption='Uploaded Image', use_column_width=True)
+    
+    preprocessed_image = preprocess_image(image)
+    extracted_text = extract_text_from_image(preprocessed_image)
+    tax_amounts = parse_amounts(extracted_text)
+    
+##    st.subheader("Extracted Text")
+##    st.text(extracted_text)
+##    
+##    st.subheader("Extracted Amounts")
+##    st.json(tax_amounts)
+
+    for key, value in tax_amounts.items():
+        tax_amounts[key] = st.text_input(f"Correct {key}", value=value if value else "")
+
+    if st.button('Save corrections'):
+        generate_excel_file([tax_amounts])
