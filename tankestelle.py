@@ -8,20 +8,17 @@ import pytesseract
 from PIL import Image, ImageEnhance, ImageFilter
 import re
 
-# Path to the Tesseract executable
-#pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# No need to set pytesseract.pytesseract.tesseract_cmd as Streamlit Share should handle it
 
 st.title("Extract Net, Tax, and Gross Amounts from Image")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
 
 # Ensure the directories exist
-output_folder = os.path.join('.', 'output')
-wip_folder = os.path.join('.', 'wip')
+output_folder = 'output'
+wip_folder = 'wip'
 os.makedirs(output_folder, exist_ok=True)
 os.makedirs(wip_folder, exist_ok=True)
-
-tax_amounts = []
 
 def preprocess_image(image):
     """ Preprocess the image for better OCR results """
@@ -37,16 +34,16 @@ def extract_text_from_image(image):
 def parse_amounts(text):
     """ Parse net, tax, and gross amounts from the extracted text """
     lines = text.split('\n')
-    net_line = next((line for line in lines if "Netto" in line), None)
+    net_line = next((line for line in lines if "Netto" in line or "Net" in line), None)
     next_line_index = lines.index(net_line) + 1 if net_line else None
     next_line = lines[next_line_index] if next_line_index and next_line_index < len(lines) else None
     
     # Extract numbers from the next line
     numbers = re.findall(r'\d+[\.,]?\d*', next_line if next_line else "")
     amounts = {
-        'Net': numbers[1] if len(numbers) > 1 else None,
-        'Tax': numbers[2] if len(numbers) > 2 else None,
-        'Gross': numbers[3] if len(numbers) > 3 else None,
+        'Net': numbers[0] if len(numbers) > 0 else None,
+        'Tax': numbers[1] if len(numbers) > 1 else None,
+        'Gross': numbers[2] if len(numbers) > 2 else None,
     }
 
     return amounts
@@ -74,7 +71,7 @@ def generate_excel_file(tax_amounts):
     bold_font = Font(bold=True)  # Create a bold font object
 
     df = pd.DataFrame(tax_amounts)
-    #df = add_summary_row(df)
+    # df = add_summary_row(df)
 
     # Write DataFrame to Excel with bold headers
     for r, df_row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
@@ -83,7 +80,6 @@ def generate_excel_file(tax_amounts):
             # Apply bold formatting to header row
             if r == 1:
                 cell.font = bold_font
-
 
     # Save the workbook
     wb.save(output_excel_path)
@@ -119,7 +115,7 @@ if uploaded_file:
     
     st.subheader("Extracted Text")
     st.text(extracted_text)
-##    
+    
     st.subheader("Extracted Amounts")
     st.json(tax_amounts)
 
