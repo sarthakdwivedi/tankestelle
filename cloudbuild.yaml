@@ -1,11 +1,11 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/streamlit-app', '.']
+  args: ['build', '-t', 'gcr.io/billreader-431408/streamlit-app', '.']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/streamlit-app']
+  args: ['push', 'gcr.io/billreader-431408/streamlit-app']
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['app', 'deploy']
 images:
-- 'gcr.io/$PROJECT_ID/streamlit-app'
+- 'gcr.io/billreader-431408/streamlit-app'
 options:
   logging: CLOUD_LOGGING_ONLY
