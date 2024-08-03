@@ -7,3 +7,5 @@ steps:
   args: ['app', 'deploy']
 images:
 - 'gcr.io/$PROJECT_ID/streamlit-app'
+options:
+  logging: CLOUD_LOGGING_ONLY
