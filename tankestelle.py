@@ -117,11 +117,11 @@ if uploaded_file:
     extracted_text = extract_text_from_image(preprocessed_image)
     tax_amounts = parse_amounts(extracted_text)
     
-##    st.subheader("Extracted Text")
-##    st.text(extracted_text)
+    st.subheader("Extracted Text")
+    st.text(extracted_text)
 ##    
-##    st.subheader("Extracted Amounts")
-##    st.json(tax_amounts)
+    st.subheader("Extracted Amounts")
+    st.json(tax_amounts)
 
     for key, value in tax_amounts.items():
         tax_amounts[key] = st.text_input(f"Correct {key}", value=value if value else "")
