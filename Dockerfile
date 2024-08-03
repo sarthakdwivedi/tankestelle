@@ -17,4 +17,4 @@ RUN apt-get update && apt-get install -y tesseract-ocr
 EXPOSE 8501
 
 # Run Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.enableCORS=false"]
+CMD ["streamlit", "run", "tankestelle.py", "--server.port=8501", "--server.enableCORS=false"]
