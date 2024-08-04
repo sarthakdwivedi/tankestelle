@@ -31,12 +31,12 @@ jobs:
 
     - name: Deploy to Elastic Beanstalk
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AKIAQKPILWOTZ7IEIOKI }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.5uouxU5u0zpN3cwbqpOHOHlfkvWC/TG1KGjfU7Q+ }}
-        AWS_REGION: 'eu-central-1'
-        APPLICATION_NAME: 'Billreader'
-        ENVIRONMENT_NAME: 'Billreader-env'
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'your-aws-region'
+        APPLICATION_NAME: 'your-application-name'
+        ENVIRONMENT_NAME: 'your-environment-name'
       run: |
         zip -r deploy.zip * .[^.]*   # Archive all files, including hidden files
-        aws elasticbeanstalk create-application-version --application-name Billreader --version-label $GITHUB_SHA --source-bundle S3Bucket=Billreader,S3Key=deploy.zip
-        aws elasticbeanstalk update-environment --application-name Billreader --environment-name Billreader-env --version-label $GITHUB_SHA
+        aws elasticbeanstalk create-application-version --application-name $APPLICATION_NAME --version-label $GITHUB_SHA --source-bundle S3Bucket=$APPLICATION_NAME,S3Key=deploy.zip
+        aws elasticbeanstalk update-environment --application-name $APPLICATION_NAME --environment-name $ENVIRONMENT_NAME --version-label $GITHUB_SHA
