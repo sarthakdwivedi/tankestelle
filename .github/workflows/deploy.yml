@@ -1,0 +1,42 @@
+name: Deploy to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+
+    - name: Install AWS CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    - name: Deploy to Elastic Beanstalk
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AKIAQKPILWOTZ7IEIOKI }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.5uouxU5u0zpN3cwbqpOHOHlfkvWC/TG1KGjfU7Q+ }}
+        AWS_REGION: 'eu-central-1'
+        APPLICATION_NAME: 'Billreader'
+        ENVIRONMENT_NAME: 'Billreader-env'
+      run: |
+        zip -r deploy.zip * .[^.]*   # Archive all files, including hidden files
+        aws elasticbeanstalk create-application-version --application-name Billreader --version-label $GITHUB_SHA --source-bundle S3Bucket=Billreader,S3Key=deploy.zip
+        aws elasticbeanstalk update-environment --application-name Billreader --environment-name Billreader-env --version-label $GITHUB_SHA
