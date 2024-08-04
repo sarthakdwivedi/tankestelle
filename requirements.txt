@@ -25,8 +25,6 @@ openpyxl==3.1.5
 packaging==24.1
 pandas==2.2.2
 pathlib==1.0.1
-pdfminer.six==20231228
-pdfplumber==0.11.2
 pillow==10.4.0
 protobuf==5.27.2
 pyarrow==17.0.0
