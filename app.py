@@ -119,6 +119,11 @@ if uploaded_file:
 
     preprocessed_image = preprocess_image(image)
     extracted_text = detect_text_from_image(preprocessed_image)
+    
+    st.subheader("Extracted Text Line by Line")
+    for line in extracted_text:
+        st.text(line)
+    
     text_result = "\n".join(extracted_text)
     tax_amounts = parse_amounts(text_result)
 
