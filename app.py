@@ -8,8 +8,6 @@ import easyocr
 from PIL import Image, ImageEnhance, ImageFilter
 import re
 
-# No need to set pytesseract.pytesseract.tesseract_cmd as Streamlit Share should handle it
-
 st.title("Extract Net, Tax, and Gross Amounts from Image")
 
 uploaded_file = st.file_uploader("Choose an image file", type=["jpg", "jpeg", "png"])
@@ -26,19 +24,16 @@ def preprocess_image(image):
     image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image
     image = ImageEnhance.Contrast(image).enhance(2)  # Enhance contrast
     return image
-    
-def detect_text_from_image(image_path):
+
+def detect_text_from_image(image):
     """Detects text in an image using EasyOCR."""
     reader = easyocr.Reader(['de'])
-    result = reader.readtext(image_path, detail=0)
-    st.write(result)
+    result = reader.readtext(image, detail=0)
     return result
 
 def extract_lines(text_list):
     """Extracts lines of text from EasyOCR result."""
     return text_list
-
-
 
 def parse_amounts(text):
     """ Parse net, tax, and gross amounts from the extracted text """
@@ -46,7 +41,7 @@ def parse_amounts(text):
     net_line = next((line for line in lines if "Netto" in line or "Net" in line), None)
     next_line_index = lines.index(net_line) + 1 if net_line else None
     next_line = lines[next_line_index] if next_line_index and next_line_index < len(lines) else None
-    
+
     # Extract numbers from the next line
     numbers = re.findall(r'\d+[\.,]?\d*', next_line if next_line else "")
     amounts = {
@@ -64,10 +59,10 @@ def add_summary_row(df):
             summary_row[column] = df[column].sum()
         else:  # Set 'taxi_numbers' to 'Summe' for the summary row
             summary_row[column] = 'Summe'
-    
+
     # Convert the summary_row dictionary to a DataFrame
     summary_df = pd.DataFrame([summary_row])
-    
+
     # Use pd.concat to append the summary row to the original DataFrame
     return pd.concat([df, summary_df], ignore_index=True)
 
@@ -76,11 +71,10 @@ def generate_excel_file(tax_amounts):
     wb = Workbook()
     ws = wb.active
     ws.title = "Data"
-    
+
     bold_font = Font(bold=True)  # Create a bold font object
 
     df = pd.DataFrame(tax_amounts)
-    # df = add_summary_row(df)
 
     # Write DataFrame to Excel with bold headers
     for r, df_row in enumerate(dataframe_to_rows(df, index=False, header=True), start=1):
@@ -92,14 +86,14 @@ def generate_excel_file(tax_amounts):
 
     # Save the workbook
     wb.save(output_excel_path)
-    
+
     if os.path.exists(output_excel_path):
         st.success(f"Data successfully extracted and written to {output_excel_path}")
-    
+
         # Read the file into a BytesIO object
         with open(output_excel_path, 'rb') as f:
             data = f.read()
-        
+
         # Create a download button
         st.download_button(
             label="Download Excel file",
@@ -111,30 +105,28 @@ def generate_excel_file(tax_amounts):
         st.error(f"Failed to create the file: {output_excel_path}")
 
 if uploaded_file:
+    # Save uploaded file to a temporary location
     uploaded_file_name = uploaded_file.name
     file_with_path = os.path.join(wip_folder, uploaded_file_name)
-
-    detect_text_from_image(file_with_path)
+    with open(file_with_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
     image = Image.open(uploaded_file)
-        
     st.image(image, caption='Uploaded Image', use_column_width=True)
-    
+
     preprocessed_image = preprocess_image(image)
-    #extracted_text = extract_text_from_image(preprocessed_image)
-    tax_amounts = parse_amounts(extracted_text)
-    
-    #st.subheader("Extracted Text")
-    #st.text(extracted_text)
-    
-    #st.subheader("Extracted Amounts")
-    #st.json(tax_amounts)
+    extracted_text = detect_text_from_image(preprocessed_image)
+    text_result = "\n".join(extracted_text)
+    tax_amounts = parse_amounts(text_result)
+
+    st.subheader("Extracted Text")
+    st.text(text_result)
+
+    st.subheader("Extracted Amounts")
+    st.json(tax_amounts)
 
     for key, value in tax_amounts.items():
         tax_amounts[key] = st.text_input(f"Correct {key}", value=value if value else "")
 
     if st.button('Save corrections'):
         generate_excel_file([tax_amounts])
-
-
-
