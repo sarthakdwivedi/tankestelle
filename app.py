@@ -38,9 +38,7 @@ def extract_lines(text_list):
     """Extracts lines of text from EasyOCR result."""
     return text_list
 
-def extract_text_from_image(image):
-    """ Extract text from the preprocessed image """
-    return pytesseract.image_to_string(image)
+
 
 def parse_amounts(text):
     """ Parse net, tax, and gross amounts from the extracted text """
@@ -123,7 +121,7 @@ if uploaded_file:
     st.image(image, caption='Uploaded Image', use_column_width=True)
     
     preprocessed_image = preprocess_image(image)
-    extracted_text = extract_text_from_image(preprocessed_image)
+    #extracted_text = extract_text_from_image(preprocessed_image)
     tax_amounts = parse_amounts(extracted_text)
     
     #st.subheader("Extracted Text")
