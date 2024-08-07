@@ -6,6 +6,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Font
 import easyocr
 from PIL import Image, ImageEnhance, ImageFilter
+import numpy as np
 import re
 
 st.title("Extract Net, Tax, and Gross Amounts from Image")
@@ -28,7 +29,9 @@ def preprocess_image(image):
 def detect_text_from_image(image):
     """Detects text in an image using EasyOCR."""
     reader = easyocr.Reader(['de'])
-    result = reader.readtext(image, detail=0)
+    # Convert the PIL image to a numpy array
+    image_np = np.array(image)
+    result = reader.readtext(image_np, detail=0)
     return result
 
 def extract_lines(text_list):
