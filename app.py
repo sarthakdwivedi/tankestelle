@@ -4,7 +4,7 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import Font
-import pytesseract
+import easyocr
 from PIL import Image, ImageEnhance, ImageFilter
 import re
 
@@ -26,6 +26,17 @@ def preprocess_image(image):
     image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image
     image = ImageEnhance.Contrast(image).enhance(2)  # Enhance contrast
     return image
+    
+def detect_text_from_image(image_path):
+    """Detects text in an image using EasyOCR."""
+    reader = easyocr.Reader(['de'])
+    result = reader.readtext(image_path, detail=0)
+    st.write(result)
+    return result
+
+def extract_lines(text_list):
+    """Extracts lines of text from EasyOCR result."""
+    return text_list
 
 def extract_text_from_image(image):
     """ Extract text from the preprocessed image """
@@ -105,6 +116,8 @@ if uploaded_file:
     uploaded_file_name = uploaded_file.name
     file_with_path = os.path.join(wip_folder, uploaded_file_name)
 
+    detect_text_from_image(file_with_path)
+
     image = Image.open(uploaded_file)
         
     st.image(image, caption='Uploaded Image', use_column_width=True)
@@ -124,3 +137,6 @@ if uploaded_file:
 
     if st.button('Save corrections'):
         generate_excel_file([tax_amounts])
+
+
+
