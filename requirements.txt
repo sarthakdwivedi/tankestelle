@@ -1,9 +1,6 @@
-opencv-python==4.10.0.84
-openpyxl==3.1.5
-pandas==2.2.2
-pathlib==1.0.1
-pillow==10.4.0
-pytesseract==0.3.10
-streamlit==1.36.0
-easyocr==1.7.1
-
+streamlit==1.24.1
+pandas==2.0.3
+openpyxl==3.1.2
+easyocr==1.6.2
+pillow==10.0.0
+numpy==1.25.0
